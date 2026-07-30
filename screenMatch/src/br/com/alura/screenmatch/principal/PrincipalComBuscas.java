@@ -1,5 +1,12 @@
 package br.com.alura.screenmatch.principal;
 
+import br.com.alura.screenmatch.excecao.ExcecaoDeAno;
+import br.com.alura.screenmatch.modelos.Titulo;
+import br.com.alura.screenmatch.modelos.TituloOmdb;
+import com.google.gson.FieldNamingPolicy;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -13,16 +20,30 @@ public class PrincipalComBuscas {
         Scanner sc = new Scanner(System.in);
         System.out.println("Digite um filme para busca: ");
         var busca = sc.nextLine();
-        String endereco = "https://www.omdbapi.com/?t=" + busca + "&apikey=5646122";
+        String endereco = "https://www.omdbapi.com/?t=" + busca.replace(" ", "+") + "&apikey=5646122";
 
-        HttpClient client = HttpClient.newHttpClient();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(endereco))
-                .build();
+        HttpResponse<String> response = null;
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(endereco))
+                    .build();
 
-        HttpResponse<String> response = client
-                .send(request, HttpResponse.BodyHandlers.ofString());
-
+            response = client
+                    .send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException(e.getMessage());
+        }
         System.out.println(response.body());
+        Gson gson = new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.UPPER_CAMEL_CASE).create();
+        TituloOmdb meuTituloOmdb = gson.fromJson(response.body(), TituloOmdb.class);
+        try {
+            Titulo meuTitulo = new Titulo(meuTituloOmdb);
+            System.out.println(meuTitulo);
+        } catch (IllegalArgumentException e) {
+            System.out.println("Algum erro de argumento na busca, verifique o endereço");
+        } catch (ExcecaoDeAno e) {
+            throw new RuntimeException(e.getMessage());
+        }
     }
 }
